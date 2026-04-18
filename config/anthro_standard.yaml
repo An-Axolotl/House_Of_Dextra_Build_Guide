@@ -1,0 +1,124 @@
+# Configuration for 5-finger anthropomorphic robotic hand control
+
+# Policy Configuration
+policy:
+  # Default policy path - can be overridden with --policy-path argument
+  default_path: "agents/rlgames_5_finger_blind_policy.pt"
+
+# Control Parameters
+control:
+  act_moving_avg: 0.041666666666666664  # 1.0 / 24.0 - action smoothing factor
+  control_hz: 30.0  # Control loop frequency in Hz
+
+# Default Joint Positions (Isaac Lab order)
+# Format: [finger1_joints(5), finger2_joints(5), finger3_joints(5), finger4_joints(5)]
+# Each finger: [palm_rotation, proximal, middle, distal, fingertip]
+joint_positions:
+  default_isaac_order: [
+    0.0, 0.0, 0.0, 0.0, 0.0,           # Finger 1 (Thumb)
+    0.487, 0.487, 0.487, 0.487, 0.487, # Finger 2 (Index)
+    1.46, 1.46, 1.46, 1.46, 1.46,      # Finger 3 (Middle)
+    1.16, 1.16, 1.16, 1.16, 1.16       # Finger 4 (Ring)
+  ]
+
+# Dynamixel Hardware Configuration
+dynamixel:
+  # Communication Settings
+  device_name: "/dev/ttyUSB0"
+  baudrate: 3000000
+  protocol_version: 2.0
+  
+  # Motor IDs (20 motors total for 5-finger hand)
+  motor_ids: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+  palm_ids: [1, 5, 9, 13, 17]  # Palm rotation motors for each finger
+  
+  # Control Table Addresses (Dynamixel Protocol 2.0)
+  addresses:
+    torque_enable: 64
+    goal_position: 116
+    present_position: 132
+    min_position_limit: 52
+    max_position_limit: 48
+    profile_velocity: 112
+    profile_acceleration: 108
+    position_p_gain: 84
+    position_i_gain: 82
+    position_d_gain: 80
+    firmware_version: 6
+    return_delay_time: 9
+  
+  # Data Lengths
+  data_lengths:
+    goal_position: 4
+    present_position: 4
+  
+  # Constants
+  torque_enable_value: 1
+  torque_disable_value: 0
+  invalid_u32: 0xFFFFFFFF
+  
+  # Motion Profile Settings
+  profile_velocity: 300      # Velocity limit for trajectory generation
+  profile_acceleration: 100  # Acceleration limit for trajectory generation
+
+# Per-Motor Limit Offsets [tight_lo_offset, tight_hi_offset]
+# These offsets tighten the operational range within hardware limits
+# to prevent mechanical stress and improve safety margins
+limit_offsets: [
+  [23, -533],    # ID 1  - Finger 1 palm
+  [16, -261],    # ID 2  - Finger 1 proximal
+  [17, -114],    # ID 3  - Finger 1 middle
+  [273, -114],   # ID 4  - Finger 1 distal
+  [57, -228],    # ID 5  - Finger 2 palm
+  [34, -284],    # ID 6  - Finger 2 proximal
+  [34, -114],    # ID 7  - Finger 2 middle
+  [228, -171],   # ID 8  - Finger 2 distal
+  [57, -114],    # ID 9  - Finger 3 palm
+  [34, -284],    # ID 10 - Finger 3 proximal
+  [34, -114],    # ID 11 - Finger 3 middle
+  [228, -171],   # ID 12 - Finger 3 distal
+  [148, -80],    # ID 13 - Finger 4 palm
+  [11, -341],    # ID 14 - Finger 4 proximal
+  [23, -114],    # ID 15 - Finger 4 middle
+  [228, -171],   # ID 16 - Finger 4 distal
+  [604, -250],   # ID 17 - Finger 5 palm
+  [23, -341],    # ID 18 - Finger 5 proximal
+  [34, -125],    # ID 19 - Finger 5 middle
+  [228, -171]    # ID 20 - Finger 5 distal
+]
+
+# PID Gains [P, I, D] for Each Motor
+# Tuned for stable position control with minimal oscillation
+pid_gains: [
+  [700, 0, 400],    # ID 1  - Finger 1 palm
+  [750, 40, 400],   # ID 2  - Finger 1 proximal
+  [700, 20, 400],   # ID 3  - Finger 1 middle
+  [750, 0, 400],    # ID 4  - Finger 1 distal
+  [700, 0, 400],    # ID 5  - Finger 2 palm
+  [750, 15, 450],   # ID 6  - Finger 2 proximal
+  [800, 5, 400],    # ID 7  - Finger 2 middle
+  [750, 0, 400],    # ID 8  - Finger 2 distal
+  [700, 0, 450],    # ID 9  - Finger 3 palm
+  [700, 50, 400],   # ID 10 - Finger 3 proximal
+  [775, 0, 450],    # ID 11 - Finger 3 middle
+  [700, 0, 400],    # ID 12 - Finger 3 distal
+  [700, 0, 400],    # ID 13 - Finger 4 palm
+  [750, 15, 400],   # ID 14 - Finger 4 proximal
+  [800, 30, 500],   # ID 15 - Finger 4 middle
+  [600, 0, 200],    # ID 16 - Finger 4 distal
+  [800, 0, 550],    # ID 17 - Finger 5 palm
+  [800, 0, 400],    # ID 18 - Finger 5 proximal
+  [800, 0, 450],    # ID 19 - Finger 5 middle
+  [800, 0, 450]     # ID 20 - Finger 5 distal
+]
+
+# Simulation Parameters
+simulation:
+  # Joint angle ranges in radians [min, max]
+  palm_range: [-0.698, 0.698]    # ±40 degrees for palm rotation
+  other_range: [0.0, 1.5708]     # 0-90 degrees for finger joints
+
+# Observation Configuration
+observation:
+  history_frames: 3              # Number of observation frames to stack
+  object_one_hot: [0, 0, 0, 0]  # One-hot encoding for object type (4 object types)
