@@ -1,9 +1,188 @@
-# Hardware Setup
+# 🏡 House of Dextra 🦾
 
-Item List:
-- Dynamixel XL-330-M288-T Motor (20x)
-- Dynamixel U2D2 Power Hub
-- 5V 2A Barrel Jack
+![House of Dextra](header.png)
+
+You can build multiple hands from one platform, here's the guide!
+
+This guide covers how to build a modular robot hand, and how to alter it to build similar hands. Hand variants are shown on our [website](https://an-axolotl.github.io/HouseofDextra/build_guide).
+
+**Key Features:**
+- **Modular:** all electronics and components can be disassembled and re-used into other morphologies. If you are doing co-design or want to quickly prototype changes to robot hands, this is a great starting point
+- **Easy to Build:** 3-4 hours to build and deploy the first hand, then less than an hour after printing for each additional robot hand
+- **5 Finger Direct Drive:** 5 fingered robot hands (or 3, 4, 5, 6 fingers if you choose). Servo motors allow for easy sim-to-real since the encoders are position accurate
+
+---
+
+## 🛒 Bill of Materials
+
+| Item | Quantity | Price | Notes |
+|------|----------|-------|-------|
+| [Cables](https://robotis.us/robot-cable-x3p-180mm-10pcs/) | 1 | $38.42 | |
+| [Expansion Boards](https://www.robotis.us/3p-jst-expansion-board/) | 2 | $13.80 | |
+| [Servo Motors](https://www.robotis.us/dynamixel-xl330-m288-t/) | 20 | $549.80 | 5 finger = 20, 4 fingers = 16, 3 fingers = 12, etc. |
+| [U2D2 Power Hub Board](https://www.robotis.us/u2d2-power-hub-boardset/) | 1 | $21.85 | |
+| [U2D2 Communication Board](https://www.robotis.us/u2d2/) | 1 | $36.92 | |
+| [Power Supply](https://www.amazon.com/ALITOVE-Converter-5-5x2-1mm-100V-240V-Security/dp/B078RT3ZPS) | 1 | $16.49 | |
+| [Black PLA](https://us.store.bambulab.com/products/pla-basic-filament) | 1 | $22.99 | Makes it look cool |
+| USB 3.0 | 1 | | |
+| **Total** | | **$700.27** | |
+
+**Additional tools:** Electrical tape, screwdriver kit, micro cutters (~$31). And a 3D printer that can print PLA 🤖
+
+> **Optional:** For extra-sturdy joints, add [servo horns](https://www.robotis.us/hnx330-n101-set/) for each servo motor.
+
+---
+
+## 🖨️ Print Guide
+
+Use **PLA Basic** with **auto tree branching supports** enabled. All STL files and SolidWorks parts are available **[HERE](#)** *(attach link)*.
+
+| Part | Quantity |
+|------|----------|
+| Palm | 1 |
+| Fingertips | 5 |
+| Servo Holders (connecting finger joints) | 15 |
+| Lever Holders (mounting fingers to palm) | 5 |
+| Servo Washers, Large | 15 |
+| Servo Washers, Small | 15 |
+
+When printing is done, remove supports with micro cutters.
+
+---
+
+## 🔧 Assembly
+
+Full assembly instructions with images are at **[the build guide](https://an-axolotl.github.io/HouseofDextra/build_guide)**. At a high level:
+
+1. Connect one servo motor vertically to the L-shaped servo holder
+2. Bolt servos into each servo holder (long side down, wire ports exposed)
+3. Snap large and small washers together (small inside large) and slide onto the free side of each servo
+4. Mount fingertips to the top using the same process
+5. Daisy-chain servo motors with X3P cables; secure wires with electrical tape
+6. Bolt each assembled finger into the palm's square brackets
+7. Connect four fingers to the expansion board and one directly to the U2D2 board
+8. Bolt the U2D2 communication hub to the U2D2 power board, connect with one cable
+9. Check wiring, plug in power, and turn on
+
+---
+
+## 🚀 Deployment
+
+Install [Dynamixel Wizard](https://emanual.robotis.com/docs/en/software/dynamixel/dynamixel_wizard2/) and connect the U2D2 board via USB 3.0. Run a scan to find all motors, then:
+
+1. **ID each motor** - number them 1-20 starting with the thumb's vertical motor as 1, working up and around each finger
+2. **Verify movement** - use the torque slider in Dynamixel Wizard to confirm each motor moves
+3. **Tune PID values** - go to Options and set proportional, integral, and derivative values per motor
+4. **Set joint limits** - record the servo tick at each desired limit and enter them in the config file (or use the defaults provided in the code)
+
+---
+
+## 💻 Software
+
+### Dependencies
+
+```bash
+pip install dynamixel-sdk numpy torch
+```
+
+Requires Python 3.8+. Motors communicate over USB via the U2D2 board (`/dev/ttyUSB0` on Linux/Mac, `COM*` on Windows).
+
+---
+
+### `test.py` - Hardware Verification
+
+**Start here.** Verifies motor communication and movement without any policy. Runs a wave motion by default, where each finger bends inward then returns to rest in sequence.
+
+```bash
+python test.py --config config/anthro_standard.yaml --test-mode wave
+```
+
+**Test modes** (switch live with keyboard):
+
+| Key | Mode | Behavior |
+|-----|------|----------|
+| `1` | `static` | Hold default pose |
+| `2` | `wave` | Wave fingers sequentially (default) |
+| `3` | `sine` | Smooth sinusoidal motion on all joints |
+| `4` | `incremental` | Step through predefined poses |
+| `r` | | Reset to base pose |
+| `Space` | | Pause / resume |
+| `q` / `ESC` | | Quit (returns to base pose, disables torque) |
+
+```
+--config / -c    Path to config file   (default: config/anthro_standard.yaml)
+--test-mode / -t Test mode             (default: wave)
+--speed / -s     Speed multiplier      (default: 1.0)
+```
+
+If all fingers move as expected, you are good to go.
+
+---
+
+### `sync_midpoint_control.py` - Midpoint Oscillation Test
+
+A self-contained lower-level test with no config file. On each keypress, toggles all finger joint motors between their midpoint and lower limit. Useful for quickly checking motor limits and PID response right after first wiring.
+
+```bash
+python sync_midpoint_control.py
+```
+
+Press any key to toggle; press `ESC` to exit. Motor IDs, limit offsets, and PID gains are hardcoded at the top of the file, edit them directly to match your hand.
+
+> The 5 base/abduction motors (IDs 1, 5, 9, 13, 17) are held at their midpoint throughout; only the finger joint motors oscillate.
+
+---
+
+### `standard_control.py` - Policy Control
+
+This script is the blueprint for running your own sim-to-real policy on the hardware. It handles the full real-time control loop: reading joint positions at the configured frequency, building a history observation, running inference on a TorchScript policy, and sending goal positions back to the motors. If you have trained a policy in simulation and want to deploy it on the hand, this is the file to adapt.
+
+```bash
+python standard_control.py \
+  --config config/anthro_standard.yaml \
+  --policy-path path/to/policy.pt
+```
+
+```
+--config / -c      Path to config file          (default: config/anthro_standard.yaml)
+--policy-path / -p Path to TorchScript .pt file (default: set in config)
+```
+
+The script sends the default pose first, then waits for a keypress to activate the policy. Loop timing stats (command Hz, read Hz, bus RTT, missed ticks) are printed every second. Press `q` or `ESC` to exit cleanly, torque is disabled automatically.
+
+---
+
+## 🔁 How to Adapt
+
+- **Add/remove fingers** - Do so in motor ID order to avoid re-IDing
+- **Custom palms** - Copy servo mounting brackets from the SolidWorks part onto any new geometry and export as STL
+- **Custom fingertips** - Design any shape and connect on top of a lever
+- **More fingers** - Add another expansion board for up to 10 fingers
+- **Different materials** - PETG, TPU for flex tips, etc.
+
+All components connect and disconnect the same way as the original assembly.
+
+---
+
+## 📖 Citation
+
+If you use this in your research, please cite:
+
+```bibtex
+@article{fay2025crossembodied,
+  title={House of Dextra: Cross Embodied Co-Design for Dexterous Hands},
+  author={Fay, Kehlani and Djapri, Darin and Zorin, Anya and Clinton, James
+          and El Lahib, Ali and Su, Hao and Tolley, Michael T. and Yi, Sha
+          and Wang, Xiaolong},
+  journal={arXiv preprint},
+  year={2025},
+  month={December}
+}
+```
+
+---
+
+*All the best, Fay* 🤖
 
 ## Motor Position Resolution
 Each position tick represents 360°/4096 ≈ 0.088 degrees of rotation.
